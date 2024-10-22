@@ -1,0 +1,9 @@
+# Ignore specific folders
+.newEnv/
+instance/
+created/
+
+# Ignore specific files
+data.xlsm
+jupyter
+read_excel.py

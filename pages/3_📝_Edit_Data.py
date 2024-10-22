@@ -28,19 +28,20 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
     from data_processing.date_utils import add_date_parts
     data = add_date_parts(data)
 
-    # Editable Data Grid
-    st.subheader("Data Preview and Editing")
+    # Add a 'Delete' column for marking rows for deletion
+    data['Delete'] = False
 
+    # Editable Data Grid with AgGrid
+    st.subheader("Data Preview and Editing")
+    
     gb = GridOptionsBuilder.from_dataframe(data)
     gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=10)
     gb.configure_side_bar()  # Add a sidebar
     gb.configure_default_column(editable=True, filter=True, sortable=True, resizable=True)
-    gb.configure_grid_options(enableCellTextSelection=True)
+    gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsChildren=True)
 
-    # Enable adding and deleting rows
-    gb.configure_grid_options(rowDragManaged=True)
-    gb.configure_grid_options(undoRedoCellEditing=True, undoRedoCellEditingLimit=20)
-
+    # Enable adding new rows
+    gb.configure_grid_options(enableRangeSelection=True)
     gridOptions = gb.build()
 
     data_response = AgGrid(
@@ -56,32 +57,55 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
 
     updated_data = data_response['data']
 
-    # Detect changes
+    # Buttons for user actions
+    col1, col2, col3 = st.columns([1, 1, 2])
+
+    # Add New Row Button
+    with col1:
+        if st.button("Add New Row"):
+            # Add a new blank row to the DataFrame
+            new_row = pd.DataFrame({col: [None] for col in updated_data.columns if col != 'Delete'})
+            updated_data = pd.concat([updated_data, new_row], ignore_index=True)
+            
+            # Update the session state and refresh the AgGrid display
+            st.session_state['raw_data'] = updated_data
+            st.experimental_rerun()
+
+    # Delete Selected Rows Button
+    with col2:
+        if st.button("Delete Selected Rows"):
+            # Identify rows marked for deletion
+            selected_rows = data_response['selected_rows']
+            if selected_rows:
+                # Convert selected rows to DataFrame and drop them
+                selected_rows_df = pd.DataFrame(selected_rows)
+                updated_data = updated_data.drop(selected_rows_df.index)
+                
+                # Update session state
+                st.session_state['raw_data'] = updated_data
+                st.success("Selected rows deleted successfully!")
+                st.experimental_rerun()
+
+    # Add New Column Button
+    with col3:
+        new_col_name = st.text_input("Enter New Column Name", key='new_col')
+        if st.button("Add New Column") and new_col_name:
+            if new_col_name not in updated_data.columns:
+                updated_data[new_col_name] = None  # Add new column with null values
+                st.session_state['raw_data'] = updated_data
+                st.success(f"New column '{new_col_name}' added!")
+                st.experimental_rerun()
+
+    # Save Changes Button
     if st.button("Save Changes"):
         # Update the session data
         st.session_state['raw_data'] = updated_data
-
-        # Provide feedback
         st.success("Changes saved to session. Visualizations will reflect updated data.")
 
-        # Optionally, provide a download link
+        # Provide download link
         from io import BytesIO
         import base64
 
         towrite = BytesIO()
         updated_data.to_excel(towrite, index=False)
-        towrite.seek(0)
-
-        b64 = base64.b64encode(towrite.read()).decode()
-        href = f'<a href="data:file/xlsx;base64,{b64}" download="updated_data.xlsx">Download Updated Data</a>'
-        st.markdown(href, unsafe_allow_html=True)
-        st.success("You can download the updated data.")
-
-    # Provide option to go to visualization page
-    if st.button("Go to Visualization Page"):
-        st.experimental_set_query_params(page="2_Visualization_and_Filters")
-
-else:
-    st.error("No data available. Please go back to **Upload and Select Columns** page.")
-    if st.button("Go Back to Upload and Select Columns"):
-        st.experimental_set_query_params(page="1_Upload_and_Select_Columns")
+  
