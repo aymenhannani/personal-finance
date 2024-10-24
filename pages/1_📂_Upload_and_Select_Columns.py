@@ -11,7 +11,7 @@ uploaded_file = st.file_uploader("Choose an Excel file", type=["xlsx", "xls", "x
 if uploaded_file is not None:
     # Read the Excel file
     try:
-        data = pd.read_excel(uploaded_file, header=4, usecols="C:G")
+        data = pd.read_excel(uploaded_file,  usecols="A:E")
         st.success("File uploaded and read successfully!")
         st.session_state['raw_data'] = data
         st.session_state['filename'] = uploaded_file.name
