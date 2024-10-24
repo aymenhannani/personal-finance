@@ -31,6 +31,12 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
         
         # Apply added rows to the original data
         added_rows = pd.DataFrame(changes['added_rows'])
+
+        # Remove the '_index' column from added rows if it exists
+        if '_index' in added_rows.columns:
+            added_rows = added_rows.drop(columns=['_index'])
+
+        # Concatenate the added rows with the existing data
         updated_data = pd.concat([data, added_rows], ignore_index=True)
 
         # Update edited rows
@@ -44,6 +50,7 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
 
         # Update session state with the modified data
         st.session_state['raw_data'] = updated_data
+        updated_data.to_excel(r'C:\Users\msi\Documents\personalFinance\data_finance.xlsx')
 
         st.success("Changes saved successfully!")
         st.write(updated_data)
