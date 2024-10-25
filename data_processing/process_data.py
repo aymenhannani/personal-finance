@@ -2,6 +2,7 @@
 
 import pandas as pd
 from .date_utils import add_date_parts
+from .category_normalization import clean_and_format_text
 
 def process_data(data, selected_columns):
     """
@@ -16,7 +17,7 @@ def process_data(data, selected_columns):
     """
     # Rename columns based on user selection
     data = data.rename(columns=selected_columns)
-
+    
     # Ensure 'Date' column is datetime type
     data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
 
@@ -26,6 +27,11 @@ def process_data(data, selected_columns):
     # Convert 'Amount' to numeric
     data['Amount'] = pd.to_numeric(data['Amount'], errors='coerce')
     data = data.dropna(subset=['Amount'])
+    # Clean and format 'Category' and 'Subcategory' columns
+    if 'Category' in data.columns:
+        data['Category'] = data['Category'].apply(clean_and_format_text)
+    if 'Subcategory' in data.columns:
+        data['Subcategory'] = data['Subcategory'].apply(clean_and_format_text)
 
     # Add date parts
     data = add_date_parts(data)
