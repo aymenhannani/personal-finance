@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 from data_processing.process_data import process_data
+from widgets.monthly_summary_widget import generate_monthly_summary
 
 st.title("Ongoing Month Summary")
 
@@ -42,16 +43,6 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
 
         balance = total_income - total_expenses
 
-        # Display cards for total income, expenses, and balance
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Income", f"${total_income:,.2f}")
-        col2.metric("Total Expenses", f"${total_expenses:,.2f}")
-
-        if balance >= 0:
-            col3.metric("Balance", f"${balance:,.2f}", delta_color="normal")
-        else:
-            col3.metric("Balance", f"${balance:,.2f}", delta_color="inverse")
-
         # Filtering for daily expenses (specific categories)
         # Convert 'Category' and 'Description' to lowercase for case-insensitive comparison
         daily_expense_data = ongoing_month_data[
@@ -72,9 +63,59 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
         # Calculate average daily expense
         num_days = daily_expense_data['Day'].nunique()  # Number of unique days with expenses
         avg_daily_expense = daily_expense_data['Amount'].sum() / num_days if num_days > 0 else 0
+        # Determine balance color based on the specified rules
+        if balance > 1000:  # Balance >>> 0 (Light Green)
+            balance_color = '#ccffcc'
+        elif balance > 0:  # Balance > 0 (Green)
+            balance_color = '#66ff66'
+        elif balance < -1000:  # Balance < 0 (Light Red)
+            balance_color = '#ff6666'
+        else:   # Balance <<< 0 (Red)
+            balance_color = '#ffcccc'
+        # Display cards for total income, expenses, and balance
+        col1, col2= st.columns(2)
+        col3, col4 =st.columns(2)
+        col1.metric("Total Income", f"${total_income:,.2f}")
+        col2.metric("Total Expenses", f"${total_expenses:,.2f}")
 
-        # Display average daily expense card
-        col4.metric("Avg. Daily Expense", f"${avg_daily_expense:,.2f}")
+        # Set display text and color for balance based on swapped conditions
+        if balance < -1000:  # Balance <<< 0 (Red)
+            balance_color = '#ff6666'
+        elif balance < 0:  # Balance < 0 (Light Red)
+            balance_color = '#ffcccc'
+        elif balance > 1000:  # Balance >>> 0 (Light Green)
+            balance_color = '#ccffcc'
+        else:   # Balance > 0 (Green)
+            balance_color = '#66ff66'
+        # Display Month Balance
+        with col3 :
+            st.markdown(
+                f"""
+                <div style='text-align: left;'>
+                    <h6 style='margin: 0;'>Balance</h6>
+                    <h2 style='margin: 0; color: {balance_color};'>${balance:,.2f}</h2>
+                </div>
+                """,
+                unsafe_allow_html=True
+        )
+        # Display average daily expense
+        with col4 :
+            st.markdown(
+                f"""
+                <div style='text-align: left;'>
+                    <h6 style='margin: 0;'>Avg. Daily Expens</h6>
+                    <h2 style='margin: 0; color: #000000;'>${avg_daily_expense:,.2f}</h2>
+                </div>
+                """,
+                unsafe_allow_html=True
+        )
+        
+
+
+
+
+
+
 
         # Plot daily expenses
         st.subheader("Daily Expenses for Ongoing Month")
@@ -86,6 +127,9 @@ if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
             title='Daily Expenses for Specific Categories'
         )
         st.plotly_chart(fig_daily_expense, use_container_width=True)
+        if st.button("Edit Monthly Budget"):
+            st.experimental_set_query_params(page="4_1_Edit_Budget")
+
 else:
     st.error("No data available. Please go back to **Upload and Select Columns** page.")
     if st.button("Go Back to Upload and Select Columns"):
