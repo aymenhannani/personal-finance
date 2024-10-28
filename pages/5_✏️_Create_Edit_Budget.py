@@ -7,10 +7,44 @@ from database.database_helpers import (
     is_budget_empty,
     insert_budget,
     fetch_budget,
-    update_budget,
-    list_all_budgets
+    update_budget
 )
 from widgets.budget_edit_widget import generate_budget_edit_widget
+
+
+
+#Dict for Budget cat and subcat
+dict_cat = {
+    'Income': ['Salary', 'Others'],
+    'Entertainment': [
+        'Sporting Events', 'Others', 'Spotify or/and Similar', 
+        'Cinema', 'Concerts & Live', 'Specials'
+    ],
+    'Housing': ['Supplies', 'Cleaning Routine', 'Trustee and other services'],
+    'Personal Care': [
+        'Hair/Nails', 'Clothing', 'Dry Cleaning', 
+        'Medical', 'Others', 'Barber'
+    ],
+    'Transportation': [
+        'Fuel', 'Vehicle Payment', 'Bus/Train rides', 
+        'Parking', 'Others', 'Maintenance', 'Insurance'
+    ],
+    'Food': [
+        'Groceries', 'Dining out', 'Coffee', 
+        'Smoking', 'Drinks', 'Others'
+    ],
+    'Debt Payments': [
+        'Friends & Family', 'House Mortgage', 
+        'Car Debt', 'Others'
+    ],
+    'Bills': [
+        'Mobile', 'Water & Sewer', 'Electricity', 
+        'Internet', 'Others'
+    ],
+    'Savings': ['Travel', 'Future'],
+    'Ressources': ['Computer', 'Chatgpt'],
+    'Activities': ['Reading Club']
+}
 
 # Title
 st.title("Create or Edit Budget")
@@ -43,12 +77,8 @@ try:
         st.info(f"No budget found for {selected_month} {selected_year}. Please create a new budget.")
         
         if st.button(f"Create Budget for {selected_month} {selected_year}"):
-            categories = ['Income', 'Food', 'Transportation']  # Common categories
-            subcategories = {
-                'Income': ['Salary', 'Freelance'],
-                'Food': ['Groceries', 'Dining Out'],
-                'Transportation': ['Fuel', 'Parking']
-            }
+            categories = dict_cat.keys()  # Common categories
+            subcategories =dict_cat
 
             # Insert initial budget data into the database
             for category in categories:
@@ -64,27 +94,14 @@ try:
         if budget_data.empty:
             st.info("No data found in the database for this period.")
         else:
-            updated_budgets = generate_budget_edit_widget(budget_data, selected_month_year)
-
-            # Aggregate the edited budgets for all categories
-            aggregated_data = pd.concat(updated_budgets.values(), ignore_index=True)
-
-            # Fetch the next available index from the database
-            all_budgets = list_all_budgets()
-            next_index = all_budgets['id'].max() + 1 if not all_budgets.empty else 1
-
-            # Add index to the aggregated data for new records
-            aggregated_data['id'] = range(next_index, next_index + len(aggregated_data))
+            # Use the widget to generate tables for each category
+            updated_budgets = generate_budget_edit_widget(budget_data)
 
             # Step 5: Save all budget data if updated
             if st.button("Save All Budget Changes", key="save_all_button"):
-                for _, row in aggregated_data.iterrows():
-                    update_budget(
-                        row['Month_Year'],
-                        row['Category'],
-                        row['Subcategory'],
-                        row['Budget']
-                    )
+                for category, category_df in updated_budgets.items():
+                    for _, row in category_df.iterrows():
+                        update_budget(selected_month_year, row['Category'], row['Subcategory'], row['Budget'])
 
                 st.success(f"Budget for {selected_month} {selected_year} updated successfully!")
 except Exception as e:
