@@ -35,10 +35,30 @@ else:
     total_expenses = other_data['Budget'].sum()
     balance = total_income - total_expenses
 
-    # Step 4: Display income category at the center of the first row
+    # Step 4: Display total income, total expenses, and balance using metric cards at the top
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Total Income", f"${total_income:,.2f}")
+
+    with col2:
+        st.metric("Total Expenses", f"${total_expenses:,.2f}")
+
+    with col3:
+        balance_color = "green" if balance >= 0 else "red"
+        st.metric("Balance", f"${balance:,.2f}", delta_color="inverse" if balance < 0 else "normal")
+
+    # Step 5: Display income category at the center of the first row
     if not income_data.empty:
         st.markdown("<h3 style='text-align: center;'>Income Budget</h3>", unsafe_allow_html=True)
-        st.dataframe(income_data[['Subcategory', 'Budget']], height=200, width=500)
+        st.markdown(
+            f"<div style='text-align: center;'>"
+            f"<table style='margin: 0 auto; width: 60%;'>"
+            f"<tr><td>{income_data[['Subcategory', 'Budget']].to_html(index=False)}</td></tr>"
+            f"</table>"
+            f"</div>", 
+            unsafe_allow_html=True
+        )
         st.markdown(
             f"<div style='text-align: center; font-size: 1.2em; color: #2E8B57;'>"
             f"Total Income: <b>${total_income:,.2f}</b>"
@@ -46,7 +66,7 @@ else:
             unsafe_allow_html=True
         )
 
-    # Step 5: Display remaining categories in a three-column layout
+    # Step 6: Display remaining categories in a three-column layout
     categories = other_data['Category'].unique()
     column_count = 3  # Number of columns to display tables
 
@@ -80,16 +100,3 @@ else:
                     f"</div>", 
                     unsafe_allow_html=True
                 )
-
-    # Step 6: Display total income, total expense, and balance using metric cards
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric("Total Income", f"${total_income:,.2f}")
-
-    with col2:
-        st.metric("Total Expenses", f"${total_expenses:,.2f}")
-
-    with col3:
-        balance_color = "green" if balance >= 0 else "red"
-        st.metric("Balance", f"${balance:,.2f}", delta_color="inverse" if balance < 0 else "normal")
