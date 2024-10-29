@@ -1,0 +1,15 @@
+Structure du dossier
+Le num‚ro de s‚rie du volume est D40C-D0A2
+C:.
+³   category_normalization.py
+³   date_utils.py
+³   process_data.py
+³   tree_data_processing.txt
+³   _init_.py
+³   
+ÀÄÄÄ__pycache__
+        category_normalization.cpython-311.pyc
+        date_utils.cpython-310.pyc
+        date_utils.cpython-311.pyc
+        process_data.cpython-311.pyc
+        
