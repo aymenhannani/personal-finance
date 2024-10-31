@@ -8,7 +8,7 @@ from widgets.metric_cards_widget import display_metric_cards
 from widgets.category_table_widget import generate_category_tables
 from widgets.visual_summary_widget import generate_visual_summary
 from widgets.navigation_widget import go_back_button
-from graphs.daily_expense_graph import plot_daily_expenses
+from widgets.graphs.daily_expense_graph import plot_daily_expenses
 
 st.title("Ongoing Month Summary")
 
@@ -43,7 +43,7 @@ else:
     all_categories = list(ongoing_month_data['Category'].unique())
     generate_category_tables(ongoing_month_data, all_categories)
 
-    # Plot daily expenses using the new function
+    # Plot daily expenses using the updated function
     plot_daily_expenses(expense_data, current_year, current_month)
 
     """
