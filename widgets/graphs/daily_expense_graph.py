@@ -1,13 +1,18 @@
-# graphs/daily_expense_graph.py
+"""
+Module: daily_expense_graph.py
+
+This module provides functionality to process expense data, allow users to select
+categories and subcategories to include or exclude, and plot daily expenses with
+a mean line using Plotly and Streamlit.
+"""
 
 import os
 import json
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
-from widgets.visualizations import plot_bar_chart
+import plotly.graph_objects as go
 
-# Constants
+# Define the path for the preferences file
 PREFERENCES_FILE = 'user_preferences.json'
 
 def load_user_preferences():
@@ -15,14 +20,14 @@ def load_user_preferences():
     Load user preferences from a JSON file.
 
     Returns:
-    - dict: User preferences.
+        dict: A dictionary containing user preferences.
     """
     if os.path.exists(PREFERENCES_FILE):
         try:
             with open(PREFERENCES_FILE, 'r') as f:
                 return json.load(f)
-        except json.JSONDecodeError:
-            st.error("Error decoding user preferences file. Loading default preferences.")
+        except (json.JSONDecodeError, IOError) as e:
+            st.error(f"Error loading user preferences: {e}")
             return {}
     else:
         return {}
@@ -31,8 +36,8 @@ def save_user_preferences(preferences):
     """
     Save user preferences to a JSON file.
 
-    Parameters:
-    - preferences (dict): User preferences to save.
+    Args:
+        preferences (dict): A dictionary containing user preferences.
     """
     try:
         with open(PREFERENCES_FILE, 'w') as f:
@@ -42,101 +47,76 @@ def save_user_preferences(preferences):
 
 def plot_daily_expenses(expense_data, current_year, current_month):
     """
-    Processes the expense data and plots daily expenses for the given month and year,
-    allowing the user to select categories and subcategories to include.
+    Processes the expense data, allows the user to select categories and subcategories,
+    and plots daily expenses with a mean line.
 
-    Parameters:
-    - expense_data (pd.DataFrame): The expense data filtered for the ongoing month.
-    - current_year (int): The current year.
-    - current_month (int): The current month.
+    Args:
+        expense_data (pd.DataFrame): The expense data filtered for the ongoing month.
+        current_year (int): The current year.
+        current_month (int): The current month.
 
     Returns:
-    - None
+        None
     """
     if expense_data.empty:
         st.warning("No expense data available to plot daily expenses.")
         return
 
-    # Initialize session state variables
-    if 'show_selection_interface' not in st.session_state:
-        st.session_state['show_selection_interface'] = False
-
     # Load user preferences
     user_preferences = load_user_preferences()
+    selected_categories = user_preferences.get('selected_categories', [])
+    excluded_subcategories = user_preferences.get('excluded_subcategories', {})
 
     # Get unique categories from the expense data
-    unique_categories = expense_data['Category'].unique().tolist()
+    unique_categories = expense_data['Category'].dropna().unique().tolist()
 
-    # Initialize user preferences if not present
-    selected_categories = user_preferences.get('selected_categories', unique_categories)
-    included_subcategories = user_preferences.get('included_subcategories', {})
+    # Category selection widget
+    st.subheader("Select Categories to Include in Daily Expenses")
+    categories_to_include = st.multiselect(
+        "Categories:",
+        options=unique_categories,
+        default=selected_categories if selected_categories else unique_categories
+    )
 
-    # Display Edit button or selection interface
-    if not st.session_state['show_selection_interface']:
-        if st.button("Edit Categories and Subcategories"):
-            st.session_state['show_selection_interface'] = True
-    else:
-        with st.form("selection_form"):
-            st.subheader("Select Categories and Subcategories to Include in Daily Expenses")
+    # Update user preferences
+    user_preferences['selected_categories'] = categories_to_include
 
-            # Category selection
-            categories_to_include = st.multiselect(
-                "Select Categories:",
-                options=unique_categories,
-                default=selected_categories
-            )
+    # Initialize excluded subcategories if not present
+    if 'excluded_subcategories' not in user_preferences:
+        user_preferences['excluded_subcategories'] = {}
 
-            # Subcategory selection for each selected category
-            for category in categories_to_include:
-                subcategory_data = expense_data[expense_data['Category'] == category]
-                unique_subcategories = subcategory_data['Subcategory'].unique().tolist()
-                included_subs = included_subcategories.get(category, unique_subcategories)
+    # Subcategory exclusion widgets
+    for category in categories_to_include:
+        subcategory_data = expense_data[expense_data['Category'] == category]
+        unique_subcategories = subcategory_data['Subcategory'].dropna().unique().tolist()
+        excluded_subs = user_preferences['excluded_subcategories'].get(category, [])
 
-                st.subheader(f"Select Subcategories to Include from '{category}'")
-                subcategories_to_include = st.multiselect(
-                    f"Subcategories in '{category}':",
-                    options=unique_subcategories,
-                    default=included_subs,
-                    key=f"include_{category}"
-                )
+        st.subheader(f"Exclude Subcategories from '{category}'")
+        subcategories_to_exclude = st.multiselect(
+            f"Subcategories to Exclude from '{category}':",
+            options=unique_subcategories,
+            default=excluded_subs,
+            key=f"exclude_{category}"
+        )
 
-                # Update included_subcategories
-                included_subcategories[category] = subcategories_to_include
+        # Update user preferences
+        user_preferences['excluded_subcategories'][category] = subcategories_to_exclude
 
-            # Submit button for the form
-            submit = st.form_submit_button("Save Changes")
+    # Save user preferences when selections change
+    save_user_preferences(user_preferences)
 
-            if submit:
-                # Update user preferences
-                user_preferences['selected_categories'] = categories_to_include
-                user_preferences['included_subcategories'] = included_subcategories
-
-                # Save user preferences
-                save_user_preferences(user_preferences)
-
-                # Hide the selection interface
-                st.session_state['show_selection_interface'] = False
-
-                st.success("Changes saved successfully!")
-
-    # Filter expense data based on user preferences
+    # Filter expense data based on selected categories
     filtered_expense_data = expense_data[
-        expense_data['Category'].isin(selected_categories)
+        expense_data['Category'].isin(categories_to_include)
     ]
 
-    # Filter subcategories
-    for category in selected_categories:
-        subcategories = included_subcategories.get(category, [])
+    # Exclude selected subcategories
+    for category, subcategories in user_preferences['excluded_subcategories'].items():
         if subcategories:
-            filtered_expense_data = filtered_expense_data[
-                ~((filtered_expense_data['Category'] == category) &
-                  (~filtered_expense_data['Subcategory'].isin(subcategories)))
-            ]
-        else:
-            # If no subcategories are selected for a category, exclude the category entirely
-            filtered_expense_data = filtered_expense_data[
-                filtered_expense_data['Category'] != category
-            ]
+            filtered_expense_data = filtered_expense_data[~(
+                (filtered_expense_data['Category'] == category) &
+                (filtered_expense_data['Subcategory'].isin(subcategories))
+            )]
 
     # Check if filtered data is empty
     if filtered_expense_data.empty:
@@ -148,42 +128,46 @@ def plot_daily_expenses(expense_data, current_year, current_month):
     daily_expense_data['Day'] = daily_expense_data['Date'].dt.day
     daily_expense_summary = daily_expense_data.groupby('Day')['Amount'].sum().reset_index()
 
-    # Calculate the mean of daily expenses
+    # Compute mean daily expense
     mean_daily_expense = daily_expense_summary['Amount'].mean()
 
-    # Create the bar chart with Plotly
+    # Plot daily expenses with mean line
+    st.subheader("Daily Expenses for Ongoing Month")
+
+    # Create the bar chart using Plotly
     fig = go.Figure()
 
-    # Add the bar chart for daily expenses
-    fig.add_trace(
-        go.Bar(
-            x=daily_expense_summary['Day'],
-            y=daily_expense_summary['Amount'],
-            name='Daily Expenses',
-            marker_color='blue'
-        )
+    # Add bar trace
+    fig.add_trace(go.Bar(
+        x=daily_expense_summary['Day'],
+        y=daily_expense_summary['Amount'],
+        name='Daily Expense',
+        marker_color='blue'
+    ))
+
+    # Add mean line
+    fig.add_hline(
+        y=mean_daily_expense,
+        line_dash="dash",
+        line_color="red",
+        annotation_text=f"Mean: ${mean_daily_expense:.2f}",
+        annotation_position="top right"
     )
 
-    # Add the mean line
-    fig.add_trace(
-        go.Scatter(
-            x=daily_expense_summary['Day'],
-            y=[mean_daily_expense] * len(daily_expense_summary['Day']),
-            mode='lines',
-            name='Mean Daily Expense',
-            line=dict(color='red', dash='dash')
-        )
-    )
-
-    # Customize the layout
+    # Update layout
     fig.update_layout(
-        title=f"Daily Expenses Breakdown for {current_year}-{current_month:02d}",
+        title=f'Daily Expenses Breakdown for {current_year}-{current_month:02d}',
         xaxis_title='Day of the Month',
         yaxis_title='Total Expense',
-        legend_title_text='Legend',
-        template='plotly_white'
+        xaxis=dict(tickmode='linear'),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1
+        )
     )
 
-    # Display the chart in Streamlit
-    st.subheader("Daily Expenses for Ongoing Month")
+    # Display the plot
     st.plotly_chart(fig, use_container_width=True)
