@@ -15,13 +15,13 @@ def calculate_financial_summary(
 ):
     """
     Calculates the financial summary, including total income, expenses, net amount,
-    and optionally includes the previous month's balance in the current month's income.
+    and optionally includes the previous month's balance in the net amount.
 
     Args:
         data (pd.DataFrame): The transaction data.
-        current_year (int): The current year.
-        current_month (int): The current month.
-        include_previous_balance (bool): Whether to include the previous month's balance.
+        current_year (int): The selected year.
+        current_month (int): The selected month.
+        include_previous_balance (bool): Whether to include the previous month's balance in net amount.
         income_category_name (str): The name used for income category.
 
     Returns:
@@ -36,28 +36,26 @@ def calculate_financial_summary(
     # Convert 'Category' to lowercase for case-insensitive comparison
     data['Category_Lower'] = data['Category'].str.lower()
 
-    # Identify Income and Expense Transactions
-    income_data = data[data['Category_Lower'] == income_category_name.lower()]
-    expense_data = data[data['Category_Lower'] != income_category_name.lower()]
-
-    # Calculate Totals for Current Month
+    # Filter data for the selected month and year
     current_month_data = data[
         (data['Date'].dt.month == current_month) &
         (data['Date'].dt.year == current_year)
     ]
 
+    # Identify Income and Expense Transactions for the current month
     current_income_data = current_month_data[current_month_data['Category_Lower'] == income_category_name.lower()]
     current_expense_data = current_month_data[current_month_data['Category_Lower'] != income_category_name.lower()]
 
     total_income = current_income_data['Amount'].sum()
     total_expenses = current_expense_data['Amount'].sum()
-    net_amount = total_income - total_expenses  # Net amount without previous balance
+    monthly_net_amount = total_income - total_expenses  # Net amount for the current month only
 
-    # Store the monthly net amount
-    monthly_net_amount = net_amount
+    # Initialize net_amount with the monthly net amount
+    net_amount = monthly_net_amount
+
+    previous_net_balance = 0.0
 
     # Include Previous Month's Balance if requested
-    previous_net_balance = 0.0
     if include_previous_balance:
         # Filter data up to the end of the previous month
         previous_data = data[
@@ -69,8 +67,7 @@ def calculate_financial_summary(
         prev_expense_data = previous_data[previous_data['Category_Lower'] != income_category_name.lower()]
         previous_net_balance = prev_income_data['Amount'].sum() - prev_expense_data['Amount'].sum()
 
-        # Add previous month's balance to the current month's income
-        total_income += previous_net_balance
+        # Add previous month's balance to the net amount
         net_amount += previous_net_balance
 
     return {
@@ -80,5 +77,5 @@ def calculate_financial_summary(
         'monthly_net_amount': monthly_net_amount,  # Net amount for the current month only
         'income_data': current_income_data,
         'expense_data': current_expense_data,
-        'previous_net_balance': previous_net_balance if include_previous_balance else 0.0
+        'previous_net_balance': previous_net_balance
     }

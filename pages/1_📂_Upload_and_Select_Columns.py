@@ -2,7 +2,6 @@
 
 import streamlit as st
 from widgets.file_upload_widget import upload_file_and_select_columns
-from widgets.navigation_widget import go_back_button
 
 st.title("Upload Your Excel File and Select Columns")
 

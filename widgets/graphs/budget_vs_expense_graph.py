@@ -1,4 +1,4 @@
-# graphs/budget_vs_expense_graph.py
+# widgets/graphs/budget_vs_expense_graph.py
 
 """
 Module: budget_vs_expense_graph.py
@@ -11,14 +11,22 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-def plot_budget_vs_expense(expense_data, budget_data, level='Category'):
+def plot_budget_vs_expense(
+    expense_data,
+    budget_data,
+    level='Category',
+    income_data=None,
+    income_category_name='Income'
+):
     """
     Generates a bar chart comparing budgeted amounts and actual expenses at the specified level.
 
     Args:
-        expense_data (pd.DataFrame): The expense data containing actual expenses.
-        budget_data (pd.DataFrame): The budget data containing budgeted amounts.
+        expense_data (pd.DataFrame): The expense data containing actual expenses for the selected month.
+        budget_data (pd.DataFrame): The budget data containing budgeted amounts for the selected month.
         level (str): The level at which to compare ('Category' or 'Subcategory').
+        income_data (pd.DataFrame, optional): The income data for the selected month.
+        income_category_name (str): The name used for the income category.
 
     Returns:
         None
@@ -29,9 +37,22 @@ def plot_budget_vs_expense(expense_data, budget_data, level='Category'):
         return
 
     # Ensure necessary columns exist
-    if level not in expense_data.columns or level not in budget_data.columns:
-        st.error(f"The specified level '{level}' is not present in the data.")
-        return
+    required_columns = [level, 'Amount']
+    for df, name in zip([expense_data, budget_data], ['Expense data', 'Budget data']):
+        if not all(col in df.columns for col in required_columns):
+            st.error(f"{name} must contain the columns '{level}' and 'Amount' or 'Budget'.")
+            return
+
+    # Clean and standardize data
+    expense_data = expense_data.copy()
+    budget_data = budget_data.copy()
+    if income_data is not None:
+        income_data = income_data.copy()
+
+    expense_data[level] = expense_data[level].str.strip().str.title()
+    budget_data[level] = budget_data[level].str.strip().str.title()
+    if income_data is not None:
+        income_data[level] = income_data[level].str.strip().str.title()
 
     # Aggregate expense data
     expense_summary = expense_data.groupby(level)['Amount'].sum().reset_index()
@@ -40,10 +61,35 @@ def plot_budget_vs_expense(expense_data, budget_data, level='Category'):
     budget_summary = budget_data.groupby(level)['Budget'].sum().reset_index()
 
     # Merge the two dataframes on the specified level
-    comparison_df = pd.merge(budget_summary, expense_summary, on=level, how='outer').fillna(0)
+    comparison_df = pd.merge(
+        budget_summary,
+        expense_summary,
+        on=level,
+        how='outer'
+    ).fillna(0)
 
     # Rename columns for clarity
-    comparison_df.rename(columns={'Budget': 'Budgeted Amount', 'Amount': 'Actual Expense'}, inplace=True)
+    comparison_df.rename(
+        columns={'Budget': 'Budgeted Amount', 'Amount': 'Actual Expense'},
+        inplace=True
+    )
+
+    # If income data is provided, handle it separately
+    if income_data is not None:
+        income_amount = income_data['Amount'].sum()
+        # Add or update the income row in comparison_df
+        income_category_title = income_category_name.strip().title()
+        if income_category_title in comparison_df[level].values:
+            comparison_df.loc[
+                comparison_df[level] == income_category_title, 'Actual Expense'
+            ] = income_amount
+        else:
+            income_row = pd.DataFrame({
+                level: [income_category_title],
+                'Budgeted Amount': [0.0],  # Assuming no budget for income
+                'Actual Expense': [income_amount]
+            })
+            comparison_df = pd.concat([comparison_df, income_row], ignore_index=True)
 
     # Sort by budgeted amount or actual expense
     comparison_df.sort_values(by='Budgeted Amount', ascending=False, inplace=True)
