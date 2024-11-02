@@ -36,23 +36,34 @@ def plot_budget_vs_expense(
         st.error("Invalid level specified. Choose 'Category' or 'Subcategory'.")
         return
 
-    # Ensure necessary columns exist
-    required_columns = [level, 'Amount']
-    for df, name in zip([expense_data, budget_data], ['Expense data', 'Budget data']):
-        if not all(col in df.columns for col in required_columns):
-            st.error(f"{name} must contain the columns '{level}' and 'Amount' or 'Budget'.")
-            return
+    # Ensure necessary columns exist in expense_data
+    if not all(col in expense_data.columns for col in [level, 'Amount']):
+        st.error(f"Expense data must contain the columns '{level}' and 'Amount'.")
+        return
+
+    # Ensure necessary columns exist in budget_data
+    if not all(col in budget_data.columns for col in [level, 'Budget']):
+        st.error(f"Budget data must contain the columns '{level}' and 'Budget'.")
+        return
 
     # Clean and standardize data
     expense_data = expense_data.copy()
     budget_data = budget_data.copy()
-    if income_data is not None:
-        income_data = income_data.copy()
 
-    expense_data[level] = expense_data[level].str.strip().str.title()
-    budget_data[level] = budget_data[level].str.strip().str.title()
-    if income_data is not None:
-        income_data[level] = income_data[level].str.strip().str.title()
+    expense_data[level] = expense_data[level].astype(str).str.strip().str.title()
+    budget_data[level] = budget_data[level].astype(str).str.strip().str.title()
+
+    # Handle income_data
+    if income_data is not None and not income_data.empty:
+        income_data = income_data.copy()
+        if level in income_data.columns:
+            income_data[level] = income_data[level].astype(str).str.strip().str.title()
+        else:
+            # Create level column in income_data
+            income_data[level] = income_category_name.strip().title()
+    else:
+        # Create an income_data DataFrame with zero income
+        income_data = pd.DataFrame({level: [income_category_name.strip().title()], 'Amount': [0.0]})
 
     # Aggregate expense data
     expense_summary = expense_data.groupby(level)['Amount'].sum().reset_index()
@@ -74,22 +85,22 @@ def plot_budget_vs_expense(
         inplace=True
     )
 
-    # If income data is provided, handle it separately
-    if income_data is not None:
-        income_amount = income_data['Amount'].sum()
-        # Add or update the income row in comparison_df
-        income_category_title = income_category_name.strip().title()
-        if income_category_title in comparison_df[level].values:
-            comparison_df.loc[
-                comparison_df[level] == income_category_title, 'Actual Expense'
-            ] = income_amount
-        else:
-            income_row = pd.DataFrame({
-                level: [income_category_title],
-                'Budgeted Amount': [0.0],  # Assuming no budget for income
-                'Actual Expense': [income_amount]
-            })
-            comparison_df = pd.concat([comparison_df, income_row], ignore_index=True)
+    # Handle income data
+    income_amount = income_data['Amount'].sum()
+    income_category_title = income_category_name.strip().title()
+
+    # Check if income category exists in comparison_df
+    if income_category_title in comparison_df[level].values:
+        comparison_df.loc[
+            comparison_df[level] == income_category_title, 'Actual Expense'
+        ] = income_amount
+    else:
+        income_row = pd.DataFrame({
+            level: [income_category_title],
+            'Budgeted Amount': [0.0],  # Assuming no budget for income
+            'Actual Expense': [income_amount]
+        })
+        comparison_df = pd.concat([comparison_df, income_row], ignore_index=True)
 
     # Sort by budgeted amount or actual expense
     comparison_df.sort_values(by='Budgeted Amount', ascending=False, inplace=True)

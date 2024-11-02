@@ -49,7 +49,7 @@ def monthly_summary(selected_year=None, selected_month=None, allow_month_selecti
 
     # Plot budget vs. actual expenses
     plot_budget_vs_expense_graph(
-        summary['expense_data'], budget_data, summary['net_amount']
+        summary['expense_data'], budget_data, summary['income_data']
     )
 
 def handle_month_selection(selected_year, selected_month, allow_month_selection):
