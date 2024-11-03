@@ -87,20 +87,21 @@ def plot_daily_expenses(expense_data, current_year, current_month):
 
     # Subcategory exclusion widgets
     for category in categories_to_include:
-        subcategory_data = expense_data[expense_data['Category'] == category]
-        unique_subcategories = subcategory_data['Subcategory'].dropna().unique().tolist()
-        excluded_subs = user_preferences['excluded_subcategories'].get(category, [])
+        if category in unique_categories :
+            subcategory_data = expense_data[expense_data['Category'] == category]
+            unique_subcategories = subcategory_data['Subcategory'].dropna().unique().tolist()
+            excluded_subs = user_preferences['excluded_subcategories'].get(category, [])
+            
+            st.subheader(f"Exclude Subcategories from '{category}'")
+            subcategories_to_exclude = st.multiselect(
+                f"Subcategories to Exclude from '{category}':",
+                options=unique_subcategories,
+                default=excluded_subs,
+                key=f"exclude_{category}"
+            )
 
-        st.subheader(f"Exclude Subcategories from '{category}'")
-        subcategories_to_exclude = st.multiselect(
-            f"Subcategories to Exclude from '{category}':",
-            options=unique_subcategories,
-            default=excluded_subs,
-            key=f"exclude_{category}"
-        )
-
-        # Update user preferences
-        user_preferences['excluded_subcategories'][category] = subcategories_to_exclude
+            # Update user preferences
+            user_preferences['excluded_subcategories'][category] = subcategories_to_exclude
 
     # Save user preferences when selections change
     save_user_preferences(user_preferences)

@@ -1,7 +1,7 @@
 # pages/1_📂_Upload_and_Select_Columns.py
 
 import streamlit as st
-from widgets.file_upload_widget import upload_file_and_select_columns
+from pages.widgets.data.file_upload_widget import upload_file_and_select_columns
 
 st.title("Upload Your Excel File and Select Columns")
 

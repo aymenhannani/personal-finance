@@ -1,6 +1,11 @@
 import psycopg2
 import pandas as pd
 from database.db_config import DATABASE_CONFIG
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from .models import Expense, User, engine
+from datetime import datetime
+
 
 def create_connection():
     """
@@ -202,3 +207,36 @@ def list_all_budgets():
 
     # Convert to DataFrame
     return pd.DataFrame(rows, columns=['Month_Year', 'Category', 'Subcategory', 'Budget'])
+
+# Set up the session
+Session = sessionmaker(bind=engine)
+session = Session()
+def save_expenses(data, user_id):
+    """
+    Saves uploaded expense data to the database for a specific user.
+
+    Args:
+        data (pd.DataFrame): The expense data to save.
+        user_id (int): The ID of the user uploading the data.
+    """
+    expenses = []
+    for _, row in data.iterrows():
+        # Convert date if necessary
+        expense_date = row.get('Date')
+        if isinstance(expense_date, str):
+            expense_date = datetime.strptime(expense_date, '%Y-%m-%d').date()
+
+        expense = Expense(
+            date=expense_date,
+            category=row.get('Category'),
+            subcategory=row.get('Subcategory'),
+            amount=row.get('Amount'),
+            description=row.get('Description', None),
+            user_id=user_id
+        )
+        expenses.append(expense)
+
+    # Add all expenses in a single transaction
+    session.bulk_save_objects(expenses)
+    session.commit()
+    session.close()

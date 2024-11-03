@@ -1,12 +1,12 @@
 # pages/2_📊_Visualization_and_Filters.py
 
 import streamlit as st
-from data_processing.data_loader import load_and_process_data
-from data_processing.financial_summary import calculate_financial_summary
-from widgets.sidebar_widget import create_sidebar
-from widgets.metric_cards_widget import display_metric_cards
-from widgets.visualizations import plot_bar_chart, plot_line_chart, plot_pie_chart
-from widgets.navigation_widget import go_back_button
+from data_processing.process_data import load_and_process_data
+from data_processing.financial_calculation import calculate_financial_summary
+from pages.widgets.sidebar.sidebar_widget import create_sidebar
+from pages.widgets.cards.metric_cards_widget import display_metric_cards
+from widgets.graphs.visualizations import plot_bar_chart, plot_line_chart, plot_pie_chart
+from pages.widgets.sidebar.navigation_widget import go_back_button
 
 st.title("Data Visualization and Filters")
 

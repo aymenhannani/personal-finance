@@ -2,7 +2,7 @@
 
 import pandas as pd
 from .date_utils import add_date_parts
-from .category_normalization import clean_and_format_text
+import streamlit as st
 
 def process_data(data, selected_columns):
     """
@@ -46,3 +46,34 @@ def process_data(data, selected_columns):
     data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
 
     return data
+
+#Capitalize Categories
+def clean_and_format_text(value):
+    """
+    Capitalizes the first letter of each word and removes extra spaces from the string.
+    
+    Parameters:
+    - value: str, the value to be cleaned and formatted.
+
+    Returns:
+    - str, cleaned and formatted value.
+    """
+    if pd.isnull(value) or not isinstance(value, str):
+        return value
+
+    # Strip extra spaces and capitalize each word
+    return ' '.join(word.capitalize() for word in value.strip().split())
+
+
+
+#Load and process data
+def load_and_process_data():
+    if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
+        # Process data using the external function
+        data = process_data(st.session_state['raw_data'], st.session_state['selected_columns'])
+        return data
+    else:
+        st.error("No data available. Please go back to **Upload and Select Columns** page.")
+        if st.button("Go Back to Upload and Select Columns"):
+            st.experimental_set_query_params(page="1_📂_Upload_and_Select_Columns.py")
+        st.stop()

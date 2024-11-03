@@ -1,15 +1,15 @@
 # pages/templates/monthly_summary_template.py
 
 import streamlit as st
-from data_processing.data_loader import load_and_process_data
-from data_processing.financial_summary import calculate_financial_summary
+from data_processing.process_data import load_and_process_data
+from data_processing.financial_calculation import calculate_financial_summary
 from data_processing.budget_helpers import fetch_budget
-from widgets.metric_cards_widget import display_metric_cards
-from widgets.category_table_widget import generate_category_tables
-from widgets.navigation_widget import go_back_button
-from widgets.graphs.daily_expense_graph import plot_daily_expenses
-from widgets.graphs.budget_vs_expense_graph import plot_budget_vs_expense
-from widgets.date_selection_widget import date_selection
+from pages.widgets.cards.metric_cards_widget import display_metric_cards
+from pages.widgets.month.category_table_widget import generate_category_tables
+from pages.widgets.sidebar.navigation_widget import go_back_button
+from pages.widgets.graphs.daily_expense_graph import plot_daily_expenses
+from pages.widgets.graphs.budget_vs_expense_graph import plot_budget_vs_expense
+from pages.widgets.filter.date_selection_widget import date_selection
 
 
 def monthly_summary(selected_year=None, selected_month=None, allow_month_selection=False):
