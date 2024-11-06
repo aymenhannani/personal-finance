@@ -240,3 +240,36 @@ def save_expenses(data, user_id):
     session.bulk_save_objects(expenses)
     session.commit()
     session.close()
+
+# database/database_helpers.py
+
+from sqlalchemy import inspect
+from database.models import engine
+
+def check_table_exists(table_name):
+    """
+    Check if the table exists in the database.
+
+    Parameters:
+    - table_name: str, the name of the table to check.
+
+    Returns:
+    - bool: True if the table exists, False otherwise.
+    """
+    inspector = inspect(engine)
+    return table_name in inspector.get_table_names()
+
+def check_database_status():
+    """
+    Check the existence of required database tables.
+
+    Returns:
+    - dict: A dictionary with table names as keys and status (True/False) as values.
+    """
+    required_tables = ['users', 'budgets', 'expenses']
+    table_status = {}
+    
+    for table in required_tables:
+        table_status[table] = check_table_exists(table)
+    
+    return table_status

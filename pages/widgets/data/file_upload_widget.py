@@ -2,9 +2,29 @@
 
 import streamlit as st
 import pandas as pd
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from database.models import Expense, User, engine
+from datetime import datetime
+
+# Create a session
+Session = sessionmaker(bind=engine)
+session = Session()
 
 def upload_file_and_select_columns():
-    # Step 1: Upload Excel File
+    # Ensure user is logged in
+    if 'authenticated_user' not in st.session_state:
+        st.error("Please log in to upload data.")
+        return
+
+    # Step 1: Check if the user has existing expenses
+    current_user = st.session_state['authenticated_user']
+    user = session.query(User).filter(User.username == current_user).first()
+
+    if not user:
+        st.error("Error: User not found in the database.")
+        return
+
     st.header("Step 1: Upload Your Excel File")
     uploaded_file = st.file_uploader("Choose an Excel file", type=["xlsx", "xls", "xlsm"])
 
@@ -44,5 +64,37 @@ def upload_file_and_select_columns():
                 subcategory_column: 'Subcategory',
                 misc_column: 'Description'
             }
+
+            # Step 3: Insert data into the database (Expenses Table)
+            try:
+                # Iterate over the rows of the uploaded data and insert each row into the database
+                for index, row in data.iterrows():
+                    expense = Expense(
+                        date=pd.to_datetime(row[date_column], errors='coerce').date() if pd.notnull(row[date_column]) else None,
+                        category=row[category_column],
+                        subcategory=row[subcategory_column],
+                        amount=row[amount_column] if pd.notnull(row[amount_column]) else 0.0,
+                        description=row[misc_column] if pd.notnull(row[misc_column]) else "",
+                        user_id=user.id  # Associate the expense with the current user
+                    )
+                    session.add(expense)
+
+                # Commit all expenses to the database
+                session.commit()
+                st.success("Data uploaded and saved to the database successfully!")
+
+            except Exception as e:
+                session.rollback()
+                st.error(f"Error saving expenses to the database: {e}")
+
     else:
-        st.info("Please upload an Excel file to proceed.")
+        # If the user has uploaded data before, display that option
+        existing_expenses = session.query(Expense).filter(Expense.user_id == user.id).all()
+
+        if existing_expenses:
+            st.info("You already have expense data uploaded. You can use it for visualization or upload new data.")
+        else:
+            st.info("Please upload an Excel file to proceed.")
+
+    # Close the session
+    session.close()
