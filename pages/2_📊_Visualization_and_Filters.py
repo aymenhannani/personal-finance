@@ -2,12 +2,10 @@
 
 import streamlit as st
 from data_processing.process_data import load_and_process_data
-from data_processing.financial_calculation import calculate_financial_summary
 from pages.widgets.sidebar.sidebar_widget import create_sidebar
-from pages.widgets.cards.metric_cards_widget import display_metric_cards
-from pages.widgets.graphs.visualizations import plot_bar_chart, plot_line_chart, plot_pie_chart
+
 from pages.widgets.sidebar.navigation_widget import go_back_button
-from pages.widgets.graphs.daily_expense_graph import plot_yearly_expenses
+from pages.widgets.graphs.daily_expense_graph import plot_yearly_cumulative_expenses
 
 # Set up the page title
 st.title("Data Visualization and Filters")
@@ -46,13 +44,15 @@ try:
     """
     st.subheader("Financial Summary")
     #display_metric_cards(total_income, total_expenses, net_amount)
-    plot_yearly_expenses(filtered_data,2024,11)
+    plot_yearly_cumulative_expenses(filtered_data,2024)
 except KeyError as e:
     st.error(f"Data missing: unable to complete calculations. {str(e)}")
     st.stop()
 except Exception as e:
     st.error(f"An error occurred during financial calculations: {str(e)}")
     st.stop()
+
+
 
 
 
