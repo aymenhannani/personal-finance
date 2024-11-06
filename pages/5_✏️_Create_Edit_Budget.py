@@ -2,8 +2,8 @@
 
 import streamlit as st
 from data_processing.budget_helpers import ensure_budget_table, initialize_budget_for_month
-from widgets.budget_edit_widget import generate_budget_edit_widget
-from widgets.date_selection_widget import date_selection
+from pages.widgets.budget.budget_edit_widget import generate_budget_edit_widget
+from pages.widgets.filter.date_selection_widget import date_selection
 from constants.categories import dict_cat
 from database.database_helpers import update_budget
 # Title

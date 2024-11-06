@@ -1,84 +1,61 @@
-# pages/2_📊_Visualization_and_Filters.py
+# pages/2_\U0001f4ca_Visualization_and_Filters.py
 
 import streamlit as st
 from data_processing.process_data import load_and_process_data
 from data_processing.financial_calculation import calculate_financial_summary
 from pages.widgets.sidebar.sidebar_widget import create_sidebar
 from pages.widgets.cards.metric_cards_widget import display_metric_cards
-from widgets.graphs.visualizations import plot_bar_chart, plot_line_chart, plot_pie_chart
+from pages.widgets.graphs.visualizations import plot_bar_chart, plot_line_chart, plot_pie_chart
 from pages.widgets.sidebar.navigation_widget import go_back_button
+from pages.widgets.graphs.daily_expense_graph import plot_yearly_expenses
 
+# Set up the page title
 st.title("Data Visualization and Filters")
 
 # Load and process data
-data = load_and_process_data()
+# Load the data using a new data structure that should be well integrated
+try:
+    data = load_and_process_data()
+except FileNotFoundError as e:
+    st.error("Data file not found: please upload the correct data file to proceed.")
+    st.stop()
+except Exception as e:
+    st.error(f"An unexpected error occurred while loading data: {str(e)}")
+    st.stop()
 
-# Create sidebar and filter data
+# Create the sidebar for data filtering and navigation
 filtered_data = create_sidebar(data)
 
-# Provide option to go back
+# Provide option to navigate back using go_back_button
+# This button would be helpful in case users need a back function.
 go_back_button()
 
-# Show filtered data
+# Displaying the Filtered data via the use of dataframes
 st.subheader("Filtered Data")
 st.dataframe(filtered_data, height=300)
 
-# Calculate financial summary
-summary = calculate_financial_summary(filtered_data)
-total_income = summary['total_income']
-total_expenses = summary['total_expenses']
-net_amount = summary['net_amount']
-income_data = summary['income_data']
-expense_data = summary['expense_data']
+# Calculate and Display Financial Summary Metrics using Cards
+try:
+    """
+    summary = calculate_financial_summary(filtered_data)
+    total_income = summary['total_income']
+    total_expenses = summary['total_expenses']
+    net_amount = summary['net_amount']
+    income_data = summary['income_data']
+    expense_data = summary['expense_data']
+    """
+    st.subheader("Financial Summary")
+    #display_metric_cards(total_income, total_expenses, net_amount)
+    plot_yearly_expenses(filtered_data,2024,11)
+except KeyError as e:
+    st.error(f"Data missing: unable to complete calculations. {str(e)}")
+    st.stop()
+except Exception as e:
+    st.error(f"An error occurred during financial calculations: {str(e)}")
+    st.stop()
 
-# Display Metric Cards
-st.subheader("Financial Summary")
-display_metric_cards(total_income, total_expenses, net_amount)
 
-# Visualization options
-st.subheader("Visualizations")
 
-# Expense Summary by Category (excluding income)
-st.write("### Expense Summary by Category")
-expense_category_summary = expense_data.groupby('Category')['Amount'].sum().reset_index()
-plot_bar_chart(
-    data=expense_category_summary,
-    x='Category',
-    y='Amount',
-    title='Total Expenses by Category',
-    labels={'Amount': 'Total Amount'}
-)
 
-# Income Over Time
-if not income_data.empty:
-    st.write("### Income Over Time")
-    income_over_time = income_data.groupby('Date')['Amount'].sum().reset_index()
-    plot_line_chart(
-        data=income_over_time,
-        x='Date',
-        y='Amount',
-        title='Income Over Time',
-        labels={'Amount': 'Total Amount'}
-    )
 
-# Expenses Over Time
-if not expense_data.empty:
-    st.write("### Expenses Over Time")
-    expenses_over_time = expense_data.groupby('Date')['Amount'].sum().reset_index()
-    plot_line_chart(
-        data=expenses_over_time,
-        x='Date',
-        y='Amount',
-        title='Expenses Over Time',
-        labels={'Amount': 'Total Amount'}
-    )
 
-# Pie Chart of Expenses by Category
-if not expense_category_summary.empty:
-    st.write("### Expenses Distribution by Category")
-    plot_pie_chart(
-        data=expense_category_summary,
-        names='Category',
-        values='Amount',
-        title='Expenses Distribution'
-    )
