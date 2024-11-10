@@ -6,6 +6,8 @@ import streamlit as st
 from sqlalchemy.orm import sessionmaker
 from database.models import Expense, engine
 
+# Create a session
+Session = sessionmaker(bind=engine)
 # Cache the database session using st.cache_resource
 @st.cache_resource
 def get_session():
@@ -88,9 +90,7 @@ def load_and_process_data():
         st.stop()
 
     user_id = st.session_state['authenticated_user_id']
-    
-    # Get the cached session
-    session = get_session()
+    session = Session()
 
     # Attempt to load user data from the database
     try:
@@ -98,9 +98,10 @@ def load_and_process_data():
         expenses = session.query(Expense).filter(Expense.user_id == user_id).all()
 
         if expenses:
-            # Convert expenses to a DataFrame
+            # Convert expenses to a DataFrame and include 'id' for each record
             expense_data = [
                 {
+                    "id": expense.id,  # Include 'id' column to use for updating purposes
                     "Date": expense.date,
                     "Category": expense.category,
                     "Subcategory": expense.subcategory,
@@ -128,19 +129,13 @@ def load_and_process_data():
             return data
 
         else:
-            # If no data is found, fall back to session data if available
-            if 'raw_data' in st.session_state and 'selected_columns' in st.session_state:
-                # Process the uploaded data
-                data = process_data(st.session_state['raw_data'], st.session_state['selected_columns'])
-                return data
-            else:
-                st.warning("No data available in the database and no uploaded data found. Please upload your expenses.")
-                st.stop()
+            st.warning("No data available in the database. Please upload your expenses.")
+            st.stop()
 
     except Exception as e:
         st.error(f"Error loading expenses from the database: {e}")
         st.stop()
 
     finally:
-        # Close the session (even though we are caching it)
+        # Close the session
         session.close()
