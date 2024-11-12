@@ -1,7 +1,7 @@
 # pages/3_✏️_Edit_Data.py
 
 import streamlit as st
-from data_processing.process_data import load_and_process_data
+from data_processing.process_data import load_and_process_data, update_session_state_data
 from pages.widgets.data.data_editor_widget import data_editor_widget
 from pages.widgets.sidebar.navigation_widget import go_back_button
 from sqlalchemy.orm import sessionmaker
@@ -69,7 +69,10 @@ if st.button("Save Changes"):
 
         # Commit the changes to the database
         session.commit()
-        st.success("Changes saved successfully!")
+
+        # After saving, update the session state to reflect the latest data
+        update_session_state_data(session, user_id)
+        st.success("Changes saved successfully and session data updated!")
 
     except SQLAlchemyError as e:
         session.rollback()  # Rollback in case of an error
