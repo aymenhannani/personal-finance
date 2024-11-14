@@ -3,7 +3,7 @@
 import streamlit as st
 from ...widgets.data.file_upload_widget import upload_file_and_select_columns
 
-def Upload_and_Select_Columns():
+def app():
     st.title("Upload Your Excel File and Select Columns")
 
     # Ensure user is logged in using session state and cookies

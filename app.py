@@ -6,14 +6,16 @@ st.set_page_config(page_title='Excel Data Visualization', layout='wide')
 from streamlit_cookies_manager import EncryptedCookieManager
 
 # Import the navigation module
-from navigation import navigation
+from webapp.navigation import navigation
 
 # Import your page modules
-from authentication import User_Authentication, User_Login
-from data_management import Upload_and_Select_Columns, Edit_Data
-from budget import Create_Edit_Budget, Budget_View
-from summary import Ongoing_Month_Summary, Monthly_Summary
-from visualization import Visualization_and_Filters
+from webapp.pages.authentication import User_Authentication,User_Login
+
+
+from webapp.pages.data_management import Upload_and_Select_Columns, Edit_Data
+from webapp.pages.budget import Create_Edit_Budget, Budget_View
+from webapp.pages.summary import Ongoing_Month_Summary, Monthly_Summary
+from webapp.pages.visualization import Visualization_and_Filters
 
 # Set up cookies for authentication
 cookies = EncryptedCookieManager(

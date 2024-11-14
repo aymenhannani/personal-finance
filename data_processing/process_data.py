@@ -77,19 +77,16 @@ def clean_and_format_text(value):
     return ' '.join(word.capitalize() for word in value.strip().split())
 
 @st.cache_data
-def load_and_process_data():
+def load_and_process_data(user_id):
     """
-    Load and process data either from the database or from session_state.
+    Load and process data from the database for the given user_id.
+
+    Parameters:
+    - user_id: ID of the authenticated user.
 
     Returns:
     - data: pandas DataFrame, processed data.
     """
-    # Check if the user is logged in
-    if 'authenticated_user_id' not in st.session_state:
-        st.error("Please log in to view data.")
-        st.stop()
-
-    user_id = st.session_state['authenticated_user_id']
     session = Session()
 
     try:
@@ -125,21 +122,19 @@ def load_and_process_data():
             data['Month_Number'] = data['Month_Name'].map(month_mapping)
             data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
 
-            # Update session state with loaded data
-            st.session_state['raw_data'] = data
-
             return data
 
         else:
-            st.warning("No expense data found. Please upload your expenses.")
-            st.stop()
+            # Return an empty DataFrame if no expenses are found
+            return pd.DataFrame()
 
     except Exception as e:
-        st.error(f"Error loading expenses from the database: {e}")
-        st.stop()
+        # Return None or re-raise the exception to be handled outside
+        raise e
 
     finally:
         session.close()
+
 
 def update_session_state_data(session, user_id):
     """
@@ -150,36 +145,40 @@ def update_session_state_data(session, user_id):
     - user_id: ID of the currently authenticated user.
     """
     try:
-        # Query expenses for the user again
-        expenses = session.query(Expense).filter(Expense.user_id == user_id).all()
+        # Check if 'raw_data' is already in session_state
+        if 'raw_data' not in st.session_state:
+            # Query expenses for the user
+            expenses = session.query(Expense).filter(Expense.user_id == user_id).all()
 
-        # Convert the queried expenses to a DataFrame
-        if expenses:
-            expense_data = [
-                {
-                    "id": expense.id,  # Include the unique id
-                    "Date": expense.date,
-                    "Category": expense.category,
-                    "Subcategory": expense.subcategory,
-                    "Amount": expense.amount,
-                    "Description": expense.description
+            # Convert the queried expenses to a DataFrame
+            if expenses:
+                expense_data = [
+                    {
+                        "id": expense.id,  # Include the unique id
+                        "Date": expense.date,
+                        "Category": expense.category,
+                        "Subcategory": expense.subcategory,
+                        "Amount": expense.amount,
+                        "Description": expense.description
+                    }
+                    for expense in expenses
+                ]
+                data = pd.DataFrame(expense_data)
+
+                # Add additional columns and process data
+                data = add_date_parts(data)
+                month_mapping = {
+                    'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                    'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                    'September': 9, 'October': 10, 'November': 11, 'December': 12
                 }
-                for expense in expenses
-            ]
-            data = pd.DataFrame(expense_data)
+                data['Month_Number'] = data['Month_Name'].map(month_mapping)
+                data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
 
-            # Add additional columns and process data
-            data = add_date_parts(data)
-            month_mapping = {
-                'January': 1, 'February': 2, 'March': 3, 'April': 4,
-                'May': 5, 'June': 6, 'July': 7, 'August': 8,
-                'September': 9, 'October': 10, 'November': 11, 'December': 12
-            }
-            data['Month_Number'] = data['Month_Name'].map(month_mapping)
-            data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
-
-            # Update session state with the newly loaded data
-            st.session_state['raw_data'] = data
-
+                # Update session state with the newly loaded data
+                st.session_state['raw_data'] = data
+        else:
+            # Optionally, you can check if the data has changed before updating
+            pass  # Do nothing if 'raw_data' is already loaded
     except Exception as e:
         st.error(f"Error while updating session state data: {e}")
