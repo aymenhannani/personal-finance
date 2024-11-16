@@ -87,6 +87,7 @@ def load_and_process_data(user_id):
     Returns:
     - data: pandas DataFrame, processed data.
     """
+
     session = Session()
 
     try:
@@ -121,7 +122,6 @@ def load_and_process_data(user_id):
             }
             data['Month_Number'] = data['Month_Name'].map(month_mapping)
             data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
-
             return data
 
         else:
@@ -136,6 +136,7 @@ def load_and_process_data(user_id):
         session.close()
 
 
+
 def update_session_state_data(session, user_id):
     """
     Updates the session state data to reflect the latest database information.
@@ -145,40 +146,38 @@ def update_session_state_data(session, user_id):
     - user_id: ID of the currently authenticated user.
     """
     try:
-        # Check if 'raw_data' is already in session_state
-        if 'raw_data' not in st.session_state:
-            # Query expenses for the user
-            expenses = session.query(Expense).filter(Expense.user_id == user_id).all()
+        # Query expenses for the user
+        expenses = session.query(Expense).filter(Expense.user_id == user_id).all()
 
-            # Convert the queried expenses to a DataFrame
-            if expenses:
-                expense_data = [
-                    {
-                        "id": expense.id,  # Include the unique id
-                        "Date": expense.date,
-                        "Category": expense.category,
-                        "Subcategory": expense.subcategory,
-                        "Amount": expense.amount,
-                        "Description": expense.description
-                    }
-                    for expense in expenses
-                ]
-                data = pd.DataFrame(expense_data)
-
-                # Add additional columns and process data
-                data = add_date_parts(data)
-                month_mapping = {
-                    'January': 1, 'February': 2, 'March': 3, 'April': 4,
-                    'May': 5, 'June': 6, 'July': 7, 'August': 8,
-                    'September': 9, 'October': 10, 'November': 11, 'December': 12
+        if expenses:
+            expense_data = [
+                {
+                    "id": expense.id,  # Include the unique id
+                    "Date": expense.date,
+                    "Category": expense.category,
+                    "Subcategory": expense.subcategory,
+                    "Amount": expense.amount,
+                    "Description": expense.description
                 }
-                data['Month_Number'] = data['Month_Name'].map(month_mapping)
-                data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
+                for expense in expenses
+            ]
+            data = pd.DataFrame(expense_data)
 
-                # Update session state with the newly loaded data
+            # Add additional columns and process data
+            data = add_date_parts(data)
+            month_mapping = {
+                'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                'September': 9, 'October': 10, 'November': 11, 'December': 12
+            }
+            data['Month_Number'] = data['Month_Name'].map(month_mapping)
+            data = data.sort_values(by=['Year', 'Month_Number', 'Day'])
+
+            # Update session state only if data has changed
+            if not st.session_state.get('raw_data') is data:
                 st.session_state['raw_data'] = data
-        else:
-            # Optionally, you can check if the data has changed before updating
-            pass  # Do nothing if 'raw_data' is already loaded
+
     except Exception as e:
         st.error(f"Error while updating session state data: {e}")
+
+

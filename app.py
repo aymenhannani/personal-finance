@@ -16,6 +16,9 @@ from webapp.pages.data_management import Upload_and_Select_Columns, Edit_Data
 from webapp.pages.budget import Create_Edit_Budget, Budget_View
 from webapp.pages.summary import Ongoing_Month_Summary, Monthly_Summary
 from webapp.pages.visualization import Visualization_and_Filters
+# At the top of app.py
+if 'is_authenticated' not in st.session_state:
+    st.session_state['is_authenticated'] = False
 
 # Set up cookies for authentication
 cookies = EncryptedCookieManager(
@@ -28,11 +31,7 @@ if not cookies.ready():
     # Wait for the cookies manager to initialize
     st.stop()
 
-# Save authenticated state into the cookies
-if st.session_state.get('is_authenticated', False):
-    cookies['is_authenticated'] = 'true'
-    cookies['authenticated_user_id'] = str(st.session_state['authenticated_user_id'])
-    cookies.save()
+
 
 # Define the PAGES dictionary, including your welcome page
 PAGES = {
@@ -64,7 +63,7 @@ PAGES = {
 section, page = navigation.main_menu(PAGES)
 
 # Display the selected page
-if section == "Home" and page == "🏠 Welcome":
+if section == "Home" and page == "🏠 Welcome" :
     # Your original welcome content
     st.title("Welcome to the Excel Data Visualization App")
 
@@ -78,6 +77,6 @@ if section == "Home" and page == "🏠 Welcome":
 
     Use the navigation on the left to switch between pages.
     """)
-else:
+else :
     # Call the app() function of the selected page module
     PAGES[section][page].app()

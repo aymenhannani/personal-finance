@@ -1,12 +1,10 @@
-# pages/3_✏️_Edit_Data.py
-
-import streamlit as st
 from data_processing.process_data import load_and_process_data, update_session_state_data
 from ...widgets.data.data_editor_widget import data_editor_widget
 from sqlalchemy.orm import sessionmaker
 from database.models import Expense, engine
 from sqlalchemy.exc import SQLAlchemyError
 import pandas as pd
+import streamlit as st
 
 def app():
     # Set up SQLAlchemy session
@@ -14,14 +12,10 @@ def app():
 
     st.title("Edit Data")
 
-    # Ensure user is logged in
-    if 'authenticated_user_id' not in st.session_state or not st.session_state['is_authenticated']:
-        st.error("Please log in to edit data.")
-        st.stop()
+
     user_id = st.session_state['authenticated_user_id']
     # Load and process data
     data = load_and_process_data(user_id)
-
     # Ensure the 'id' column is present in the data
     if 'id' not in data.columns:
         st.error("No unique identifier (id) found in the data for editing. Please ensure that the data includes an 'id' column.")
@@ -79,5 +73,3 @@ def app():
             st.error(f"An error occurred while saving changes: {e}")
         finally:
             session.close()  # Close the session
-
-

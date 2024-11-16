@@ -9,7 +9,6 @@ def app():
     # Ensure user is logged in using session state and cookies
     if 'is_authenticated' not in st.session_state or not st.session_state['is_authenticated']:
         st.error("Please log in to upload data.")
-        st.stop()
 
     # Call the widget to handle file upload and column selection
     upload_file_and_select_columns()
