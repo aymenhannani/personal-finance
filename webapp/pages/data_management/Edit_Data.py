@@ -1,4 +1,4 @@
-from data_processing.process_data import load_and_process_data, update_session_state_data
+from data_processing.process_data import load_and_process_data
 from ...widgets.data.data_editor_widget import data_editor_widget
 from sqlalchemy.orm import sessionmaker
 from database.models import Expense, engine
@@ -64,8 +64,7 @@ def app():
             # Commit the changes to the database
             session.commit()
 
-            # After saving, update the session state to reflect the latest data
-            update_session_state_data(session, user_id)
+
             st.success("Changes saved successfully and session data updated!")
 
         except SQLAlchemyError as e:
