@@ -177,7 +177,7 @@ def plot_yearly_expenses(expense_data, current_year, current_month):
 def plot_yearly_cumulative_expenses(expense_data, current_year):
     """
     Processes the expense data, allows the user to view cumulative daily expenses for each month in the year,
-    and plots yearly cumulative expenses with each month represented as a separate line.
+    and plots yearly cumulative expenses with each month represented as a separate line using month names.
 
     Args:
         expense_data (pd.DataFrame): The expense data.
@@ -210,14 +210,20 @@ def plot_yearly_cumulative_expenses(expense_data, current_year):
         return
 
     # Process cumulative daily expenses for each month
-    yearly_expense_data['Month'] = yearly_expense_data['Date'].dt.month
+    yearly_expense_data['Month'] = yearly_expense_data['Date'].dt.month_name()
     yearly_expense_data['Day'] = yearly_expense_data['Date'].dt.day
+
+    # Define the order of months
+    month_order = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
 
     # Create an empty figure for plotting
     fig = go.Figure()
 
     # Loop through all months to add cumulative sum lines
-    for month in range(1, 13):
+    for month in month_order:
         month_data = yearly_expense_data[yearly_expense_data['Month'] == month]
         if not month_data.empty:
             daily_expense_summary = month_data.groupby('Day')['Amount'].sum().reset_index()
@@ -230,7 +236,7 @@ def plot_yearly_cumulative_expenses(expense_data, current_year):
                 x=daily_expense_summary['Day'],
                 y=daily_expense_summary['Cumulative Amount'],
                 mode='lines',
-                name=f'Month {month}',
+                name=month,
                 line=dict(width=2)
             ))
 
