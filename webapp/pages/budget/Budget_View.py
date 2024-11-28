@@ -12,7 +12,7 @@ def app():
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
     ]
-    years = list(range(2020, datetime.now().year + 1))
+    years = list(range(2020, datetime.now().year + 2))
 
     # Dropdowns for selecting month and year
     selected_month = st.selectbox("Select Month:", months, index=datetime.now().month - 1)

@@ -1,1 +1,1 @@
-{"selected_categories": ["Food", "Transportation"], "excluded_subcategories": {"Food": [], "Transportation": ["Fuel"], "Fees": [], "Entertainment": [], "Debt Payments": [], "Housing": [], "Activities": [], "Personal Care": []}}
+{"selected_categories": ["Food", "Transportation"], "excluded_subcategories": {"Food": ["Drinks"], "Transportation": ["Fuel"], "Fees": [], "Entertainment": [], "Debt Payments": [], "Housing": [], "Activities": [], "Personal Care": []}}
