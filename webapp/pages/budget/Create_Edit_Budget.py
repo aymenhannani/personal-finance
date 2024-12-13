@@ -34,3 +34,5 @@ def app():
                     # Update budget in the database
                     update_budget(selected_month_year, row['Category'], row['Subcategory'], row['Budget'])
             st.success(f"Budget for {selected_month} {selected_year} updated successfully!")
+
+
