@@ -6,3 +6,5 @@ alembic==1.11.3
 numpy==1.24.3
 python-dateutil==2.8.2
 streamlit_cookies_manager
+distutils
+bcrypt
