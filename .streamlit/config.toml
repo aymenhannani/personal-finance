@@ -3,3 +3,6 @@ runOnSave = false
 
 [logger]
 level = "error"
+
+[server]
+fileWatcherType = "none"
