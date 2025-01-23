@@ -14,4 +14,4 @@ DATABASE_URL = f"postgresql://{DATABASE_CONFIG['user']}:" \
                f"{DATABASE_CONFIG['host']}:" \
                f"{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['dbname']}"
 """
-DATABASE_URL="postgresql://finance_db_owner:rxMKhai1qQe2@ep-yellow-block-a9rkmavt.gwc.azure.neon.tech/finance_db?sslmode=require"
+DATABASE_URL="postgresql://finance_db_owner@ep-yellow-block-a9rkmavt.gwc.azure.neon.tech/finance_db?sslmode=require"
