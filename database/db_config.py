@@ -1,5 +1,5 @@
 import os
-
+import streamlit as st
 DATABASE_CONFIG = {
     'host': 'localhost',
     'port': 5432,
@@ -14,4 +14,4 @@ DATABASE_URL = f"postgresql://{DATABASE_CONFIG['user']}:" \
                f"{DATABASE_CONFIG['host']}:" \
                f"{DATABASE_CONFIG['port']}/{DATABASE_CONFIG['dbname']}"
 """
-DATABASE_URL="postgresql://finance_db_owner@ep-yellow-block-a9rkmavt.gwc.azure.neon.tech/finance_db?sslmode=require"
+DATABASE_URL=st.secrets["database"]["url"]
