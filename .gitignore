@@ -1,1 +1,39 @@
-**/.streamlit/**/*.toml
+# Ignore Python cache and environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+*.env
+
+# Ignore secrets and database credentials
+db_config.py
+*.secrets
+*.key
+*.pem
+*.crt
+config.json
+*.sqlite3
+.env
+.env.local
+.env.*.local
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore temporary files
+tmp/
+temp/
+*.swp
+.DS_Store
+
+# Ignore data files
+data/
+*.csv
+*.xlsx
+*.json
+
+# Ignore Streamlit files
+.streamlit/
