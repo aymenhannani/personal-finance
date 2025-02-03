@@ -1,162 +1,107 @@
-import psycopg2
-import pandas as pd
-from database.db_config import DATABASE_CONFIG
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from .models import Expense, User, engine
+from sqlalchemy import inspect
+from sqlalchemy.sql import text  # Import for safely handling raw SQL
+from .models import Expense, engine
 from datetime import datetime
+import pandas as pd
 
-
-def create_connection():
-    """
-    Establishes a connection to the PostgreSQL database using the DATABASE_CONFIG.
-    Returns a connection object or None if connection fails.
-    """
-    try:
-        conn = psycopg2.connect(
-            host=DATABASE_CONFIG['host'],
-            port=DATABASE_CONFIG['port'],
-            user=DATABASE_CONFIG['user'],
-            password=DATABASE_CONFIG['password'],
-            dbname=DATABASE_CONFIG['dbname']
-        )
-        return conn
-    except psycopg2.OperationalError as e:
-        print(f"Error connecting to the database: {e}")
-        return None
+# Set up a single session factory
+Session = sessionmaker(bind=engine)
+session_factory = Session()
 
 def check_budget_table_exists():
     """
     Checks if the 'budgets' table exists in the database.
     Returns True if the table exists, otherwise False.
     """
-    conn = create_connection()
-    if conn is None:
-        return False
-
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_name = 'budgets'
-        );
-    """)
-    exists = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    return exists
+    inspector = inspect(engine)
+    return 'budgets' in inspector.get_table_names()
 
 def initialize_budget_table():
     """
     Creates the 'budgets' table if it doesn't already exist.
     """
-    conn = create_connection()
-    if conn is None:
+    if check_budget_table_exists():
         return
 
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS budgets (
-            id SERIAL PRIMARY KEY,
-            month_year VARCHAR(20),
-            category VARCHAR(50),
-            subcategory VARCHAR(50),
-            budget NUMERIC
-        );
-    """)
-    conn.commit()
-    cursor.close()
-    conn.close()
+    with engine.connect() as connection:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS budgets (
+                id SERIAL PRIMARY KEY,
+                month_year VARCHAR(20),
+                category VARCHAR(50),
+                subcategory VARCHAR(50),
+                budget NUMERIC
+            );
+        """)
 
 def is_budget_empty(month_year):
     """
     Checks if there is any budget data for the given month-year.
     Returns True if no data is found, otherwise False.
     """
-    conn = create_connection()
-    if conn is None:
-        return True
+    query = text("""
+            SELECT COUNT(*) FROM budgets WHERE month_year = :month_year;
+        """)
+    with engine.connect() as connection:
+        result = connection.execute(query,{"month_year": month_year})
+        count = result.scalar()
+        return count == 0
 
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT COUNT(*) FROM budgets WHERE month_year = %s;
-    """, (month_year,))
-    count = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    return count == 0
 
 def insert_budget(month_year, category, subcategory, budget):
     """
     Inserts a new budget record into the 'budgets' table.
     """
-    conn = create_connection()
-    if conn is None:
-        return
+    with engine.connect() as connection:
+        connection.execute("""
+            INSERT INTO budgets (month_year, category, subcategory, budget)
+            VALUES (%s, %s, %s, %s);
+        """, (month_year, category, subcategory, budget))
 
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO budgets (month_year, category, subcategory, budget)
-        VALUES (%s, %s, %s, %s);
-    """, (month_year, category, subcategory, budget))
-    conn.commit()
-    cursor.close()
-    conn.close()
+
 
 def fetch_budget(month_year):
     """
     Fetches budget data for the given month-year from the 'budgets' table.
     Returns a pandas DataFrame.
     """
-    conn = create_connection()
-    if conn is None:
-        return pd.DataFrame()  # Return an empty DataFrame if no connection
+    # Use the `text` function for executing raw SQL queries
+    query = text("""
+        SELECT category, subcategory, budget FROM budgets WHERE month_year = :month_year;
+    """)
+    
+    with engine.connect() as connection:
+        result = connection.execute(query, {"month_year": month_year})
+        rows = result.fetchall()
 
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT category, subcategory, budget FROM budgets WHERE month_year = %s;
-    """, (month_year,))
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    # Convert to DataFrame
+    # Convert result to a pandas DataFrame
     return pd.DataFrame(rows, columns=['Category', 'Subcategory', 'Budget'])
+
+
 
 def update_budget(month_year, category, subcategory, budget):
     """
     Updates the budget amount for the given month-year, category, and subcategory.
     If the subcategory does not exist, inserts it as a new record.
     """
-    conn = create_connection()
-    if conn is None:
-        return
-
-    cursor = conn.cursor()
-
-    # Check if the subcategory exists
-    cursor.execute("""
-        SELECT * FROM budgets 
-        WHERE month_year = %s AND category = %s AND subcategory = %s;
-    """, (month_year, category, subcategory))
-    result = cursor.fetchone()
-
-    if result:
-        # Update existing record
-        cursor.execute("""
-            UPDATE budgets SET budget = %s
+    with engine.connect() as connection:
+        result = connection.execute("""
+            SELECT * FROM budgets 
             WHERE month_year = %s AND category = %s AND subcategory = %s;
-        """, (budget, month_year, category, subcategory))
-    else:
-        # Insert new subcategory
-        cursor.execute("""
-            INSERT INTO budgets (month_year, category, subcategory, budget)
-            VALUES (%s, %s, %s, %s);
-        """, (month_year, category, subcategory, budget))
+        """, (month_year, category, subcategory))
+        exists = result.fetchone()
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        if exists:
+            connection.execute("""
+                UPDATE budgets SET budget = %s
+                WHERE month_year = %s AND category = %s AND subcategory = %s;
+            """, (budget, month_year, category, subcategory))
+        else:
+            connection.execute("""
+                INSERT INTO budgets (month_year, category, subcategory, budget)
+                VALUES (%s, %s, %s, %s);
+            """, (month_year, category, subcategory, budget))
 
 def delete_budget(month_year, category=None, subcategory=None):
     """
@@ -165,52 +110,34 @@ def delete_budget(month_year, category=None, subcategory=None):
     If category is provided, deletes records for that category.
     If subcategory is provided, deletes records for that subcategory.
     """
-    conn = create_connection()
-    if conn is None:
-        return
-
-    cursor = conn.cursor()
-
-    if subcategory:
-        cursor.execute("""
-            DELETE FROM budgets WHERE month_year = %s AND category = %s AND subcategory = %s;
-        """, (month_year, category, subcategory))
-    elif category:
-        cursor.execute("""
-            DELETE FROM budgets WHERE month_year = %s AND category = %s;
-        """, (month_year, category))
-    else:
-        cursor.execute("""
-            DELETE FROM budgets WHERE month_year = %s;
-        """, (month_year,))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
+    with engine.connect() as connection:
+        if subcategory:
+            connection.execute("""
+                DELETE FROM budgets WHERE month_year = %s AND category = %s AND subcategory = %s;
+            """, (month_year, category, subcategory))
+        elif category:
+            connection.execute("""
+                DELETE FROM budgets WHERE month_year = %s AND category = %s;
+            """, (month_year, category))
+        else:
+            connection.execute("""
+                DELETE FROM budgets WHERE month_year = %s;
+            """, (month_year,))
 
 def list_all_budgets():
     """
     Retrieves all budget records from the 'budgets' table.
     Returns a pandas DataFrame.
     """
-    conn = create_connection()
-    if conn is None:
-        return pd.DataFrame()
-
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT month_year, category, subcategory, budget FROM budgets;
-    """)
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    with engine.connect() as connection:
+        result = connection.execute("""
+            SELECT month_year, category, subcategory, budget FROM budgets;
+        """)
+        rows = result.fetchall()
 
     # Convert to DataFrame
     return pd.DataFrame(rows, columns=['Month_Year', 'Category', 'Subcategory', 'Budget'])
 
-# Set up the session
-Session = sessionmaker(bind=engine)
-session = Session()
 def save_expenses(data, user_id):
     """
     Saves uploaded expense data to the database for a specific user.
@@ -221,7 +148,6 @@ def save_expenses(data, user_id):
     """
     expenses = []
     for _, row in data.iterrows():
-        # Convert date if necessary
         expense_date = row.get('Date')
         if isinstance(expense_date, str):
             expense_date = datetime.strptime(expense_date, '%Y-%m-%d').date()
@@ -236,25 +162,12 @@ def save_expenses(data, user_id):
         )
         expenses.append(expense)
 
-    # Add all expenses in a single transaction
-    session.bulk_save_objects(expenses)
-    session.commit()
-    session.close()
-
-# database/database_helpers.py
-
-from sqlalchemy import inspect
-from database.models import engine
+    session_factory.bulk_save_objects(expenses)
+    session_factory.commit()
 
 def check_table_exists(table_name):
     """
     Check if the table exists in the database.
-
-    Parameters:
-    - table_name: str, the name of the table to check.
-
-    Returns:
-    - bool: True if the table exists, False otherwise.
     """
     inspector = inspect(engine)
     return table_name in inspector.get_table_names()
@@ -262,14 +175,6 @@ def check_table_exists(table_name):
 def check_database_status():
     """
     Check the existence of required database tables.
-
-    Returns:
-    - dict: A dictionary with table names as keys and status (True/False) as values.
     """
     required_tables = ['users', 'budgets', 'expenses']
-    table_status = {}
-    
-    for table in required_tables:
-        table_status[table] = check_table_exists(table)
-    
-    return table_status
+    return {table: check_table_exists(table) for table in required_tables}
