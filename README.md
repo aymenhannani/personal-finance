@@ -43,5 +43,4 @@ The **Finance App** is a web-based personal finance management tool built using 
 
 ---
 
-## 📂 Project Structure
 
